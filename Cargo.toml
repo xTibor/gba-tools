@@ -1,0 +1,8 @@
+[package]
+name = "gba-tools"
+version = "0.1.0"
+authors = ["Tibor Nagy <xnagytibor@gmail.com>"]
+
+[dependencies]
+gba-rs = { git = "https://github.com/xtibor/gba-rs" }
+clap = "2.24.1"
