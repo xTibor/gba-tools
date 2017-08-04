@@ -6,8 +6,7 @@ extern crate serde_derive;
 use docopt::Docopt;
 use gba_rs::compression::bios::{compress_rle, compress_lz77};
 use gba_rs::compression::game_specific::wario_land_4::{compress_wl4_rle8, compress_wl4_rle16};
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use gba_rs::utils::streams::{InputStream, OutputStream};
 
 const USAGE: &'static str = "
 Usage:
@@ -36,68 +35,13 @@ struct Args {
     arg_output: Option<String>,
 }
 
-#[derive(Debug)]
-enum Input {
-    File(fs::File),
-    Stdin(io::Stdin),
-}
-
-#[derive(Debug)]
-enum Output {
-    File(fs::File),
-    Stdout(io::Stdout),
-}
-
-impl Input {
-    fn new(arg: Option<String>) -> Result<Input, &'static str> {
-        match arg {
-            Some(path) => Ok(Input::File(File::create(path).unwrap())),
-            None => Ok(Input::Stdin(io::stdin())),
-        }
-    }
-}
-
-impl Read for Input {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match *self {
-            Input::File(ref mut file) => file.read(buf),
-            Input::Stdin(ref mut stdin) => stdin.read(buf),
-        }
-    }
-}
-
-impl Output {
-    fn new(arg: Option<String>) -> Result<Output, &'static str> {
-        match arg {
-            Some(path) => Ok(Output::File(File::create(path).unwrap())),
-            None => Ok(Output::Stdout(io::stdout())),
-        }
-    }
-}
-
-impl Write for Output {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match *self {
-            Output::File(ref mut file) => file.write(buf),
-            Output::Stdout(ref mut stdout) => stdout.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match *self {
-            Output::File(ref mut file) => file.flush(),
-            Output::Stdout(ref mut stdout) => stdout.flush(),
-        }
-    }
-}
-
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    let mut input = Input::new(args.arg_input).unwrap();
-    let mut output = Output::new(args.arg_output).unwrap();
+    let mut input = InputStream::new(args.arg_input).unwrap();
+    let mut output = OutputStream::new(args.arg_output).unwrap();
 
     match args.arg_type {
         CompressionType::Lz77 => compress_lz77(&mut input, &mut output).unwrap(),
