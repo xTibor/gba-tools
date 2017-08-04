@@ -12,8 +12,8 @@ use gba_rs::utils::streams::{InputStream, OutputStream};
 
 const USAGE: &'static str = "
 Usage:
-    gba_compress --type <type> [--input <input>] [--output <output>] [--decompress]
-    gba_compress --help
+    gba-compress --type <type> [--input <input>] [--output <output>] [--decompress]
+    gba-compress --help
 
 Options:
     -i, --input       Input file
@@ -61,7 +61,7 @@ fn main() {
         // Unsupported
         _ => {
             let cmd_str = if args.flag_decompress { "decompression" } else { "compression" };
-            eprintln!("gba_compress: {:?} {} is not supported", args.arg_type, cmd_str);
+            eprintln!("gba-compress: {:?} {} is not supported", args.arg_type, cmd_str);
         }
     }
 }
