@@ -38,8 +38,6 @@ fn main() {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    println!("{:?}", args);
-
     let mut input = InputStream::new(args.arg_input).unwrap();
     let mut output = OutputStream::new(args.arg_output).unwrap();
 
