@@ -1,4 +1,3 @@
-
 extern crate docopt;
 extern crate gba_rs;
 #[macro_use]
@@ -12,34 +11,38 @@ use std::io::{Read, Write, Cursor};
 
 const USAGE: &'static str = "
 Usage:
-    gba-find-lz77 [--input <input>] [--output <output>] [--dumpdir <directory>] [--hex] [--silent]
+    gba-find-lz77 [--input <input>] [--output <output>] [--min-size <bytes>] [--dump-dir <directory>] [--hex] [--silent]
     gba-find-lz77 --help
 
 Options:
-    -i, --input    Input file
-    -o, --output   Output file
-    -d, --dumpdir  Dump the found data into <diretory>
-    -H, --hex      Use hexadecimal notation for offsets
-    -s, --silent   Do not print the offsets to the standard output
-    -h, --help     Display this message
+    -i, --input <input>         Input file
+    -o, --output <output>       Output file
+    -m, --min-size <bytes>      Discard data sbelow this size
+    -d, --dump-dir <directory>  Dump the found data into <diretory>
+    -H, --hex                   Use hexadecimal notation for offsets
+    -s, --silent                Do not print the offsets to the output
+    -h, --help                  Display this message
 ";
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    arg_input: Option<String>,
-    arg_output: Option<String>,
-    arg_dumpdir: Option<String>,
+    flag_input: Option<String>,
+    flag_output: Option<String>,
+    flag_dump_dir: Option<String>,
+    flag_min_size: Option<usize>,
     flag_hex: bool,
     flag_silent: bool,
 }
 
 fn main() {
-    let args: Args = Docopt::new(USAGE)
+    let mut args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    let mut input = InputStream::new(args.arg_input).unwrap();
-    let mut output = OutputStream::new(args.arg_output).unwrap();
+    args.flag_dump_dir = Some(String::from("dump"));
+
+    let mut input = InputStream::new(args.flag_input).unwrap();
+    let mut output = OutputStream::new(args.flag_output).unwrap();
 
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
@@ -50,20 +53,22 @@ fn main() {
         let mut decompressed: Vec<u8> = Vec::new();
 
         if decompress_lz77(&mut cursor, &mut decompressed).is_ok() {
-            let offset_str = if args.flag_hex {
-                format!("{:06X}", offset)
-            } else {
-                format!("{}", offset)
-            };
+            if decompressed.len() >= args.flag_min_size.unwrap_or(0) {
+                let offset_str = if args.flag_hex {
+                    format!("{:06X}", offset)
+                } else {
+                    format!("{}", offset)
+                };
 
-            if ! args.flag_silent {
-                writeln!(output, "{}", offset_str).unwrap();
-            }
+                if ! args.flag_silent {
+                    writeln!(output, "{}", offset_str).unwrap();
+                }
 
-            if let Some(ref dir) = args.arg_dumpdir {
-                let path = format!("{}/lz77_{}.bin", dir, offset_str);
-                let mut file = File::create(path).unwrap();
-                file.write_all(&decompressed).unwrap();
+                if let Some(ref dir) = args.flag_dump_dir {
+                    let path = format!("{}/lz77_{}.bin", dir, offset_str);
+                    let mut file = File::create(path).unwrap();
+                    file.write_all(&decompressed).unwrap();
+                }
             }
         }
 

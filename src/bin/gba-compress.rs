@@ -16,11 +16,11 @@ Usage:
     gba-compress --help
 
 Options:
-    -i, --input       Input file
-    -o, --output      Output file
-    -t, --type        Compression type
-    -d, --decompress  Decompression
-    -h, --help        Display this message
+    -i, --input <input>    Input file
+    -o, --output <output>  Output file
+    -t, --type <type>      Compression type
+    -d, --decompress       Decompression
+    -h, --help             Display this message
 ";
 
 #[derive(Debug, Deserialize, Copy, Clone)]
@@ -33,9 +33,9 @@ enum CompressionType {
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    arg_type: CompressionType,
-    arg_input: Option<String>,
-    arg_output: Option<String>,
+    flag_type: CompressionType,
+    flag_input: Option<String>,
+    flag_output: Option<String>,
     flag_decompress: bool,
 }
 
@@ -44,10 +44,10 @@ fn main() {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    let mut input = InputStream::new(args.arg_input).unwrap();
-    let mut output = OutputStream::new(args.arg_output).unwrap();
+    let mut input = InputStream::new(args.flag_input).unwrap();
+    let mut output = OutputStream::new(args.flag_output).unwrap();
 
-    match (args.arg_type, args.flag_decompress) {
+    match (args.flag_type, args.flag_decompress) {
         // Compression
         (CompressionType::Lz77, false) => compress_lz77(&mut input, &mut output).unwrap(),
         (CompressionType::Rle, false) => compress_rle(&mut input, &mut output).unwrap(),
@@ -61,7 +61,7 @@ fn main() {
         // Unsupported
         _ => {
             let cmd_str = if args.flag_decompress { "decompression" } else { "compression" };
-            eprintln!("gba-compress: {:?} {} is not supported", args.arg_type, cmd_str);
+            eprintln!("gba-compress: {:?} {} is not supported", args.flag_type, cmd_str);
         }
     }
 }
