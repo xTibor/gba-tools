@@ -39,8 +39,6 @@ fn main() {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
-    args.flag_dump_dir = Some(String::from("dump"));
-
     let mut input = InputStream::new(args.flag_input).unwrap();
     let mut output = OutputStream::new(args.flag_output).unwrap();
 
