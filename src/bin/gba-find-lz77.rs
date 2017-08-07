@@ -5,6 +5,7 @@ extern crate serde_derive;
 
 use docopt::Docopt;
 use gba_rs::compression::bios::decompress_lz77;
+use gba_rs::utils::format::format_offset;
 use gba_rs::utils::streams::{InputStream, OutputStream};
 use std::fs::File;
 use std::io::{Read, Write, Cursor};
@@ -17,9 +18,9 @@ Usage:
 Options:
     -i, --input <input>         Input file
     -o, --output <output>       Output file
-    -m, --min-size <bytes>      Discard data sbelow this size
+    -m, --min-size <bytes>      Discard data below this size
     -d, --dump-dir <directory>  Dump the found data into <diretory>
-    -H, --hex                   Use hexadecimal notation for offsets
+    -H, --hex                   Use hexadecimal offsets
     -s, --silent                Do not print the offsets to the output
     -h, --help                  Display this message
 ";
@@ -35,7 +36,7 @@ struct Args {
 }
 
 fn main() {
-    let mut args: Args = Docopt::new(USAGE)
+    let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
@@ -52,11 +53,7 @@ fn main() {
 
         if decompress_lz77(&mut cursor, &mut decompressed).is_ok() {
             if decompressed.len() >= args.flag_min_size.unwrap_or(0) {
-                let offset_str = if args.flag_hex {
-                    format!("{:06X}", offset)
-                } else {
-                    format!("{}", offset)
-                };
+                let offset_str = format_offset(offset, args.flag_hex);
 
                 if ! args.flag_silent {
                     writeln!(output, "{}", offset_str).unwrap();
