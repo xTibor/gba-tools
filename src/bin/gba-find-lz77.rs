@@ -4,11 +4,12 @@ extern crate gba_rs;
 extern crate serde_derive;
 
 use docopt::Docopt;
-use gba_rs::compression::bios::decompress_lz77;
+use gba_rs::compression::Compressor;
+use gba_rs::compression::bios::Lz77Compressor;
 use gba_rs::utils::format::format_offset;
 use gba_rs::utils::streams::{InputStream, OutputStream};
 use std::fs::File;
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write};
 
 const USAGE: &'static str = "
 Usage:
@@ -42,16 +43,16 @@ fn main() {
 
     let mut input = InputStream::new(args.flag_input).unwrap();
     let mut output = OutputStream::new(args.flag_output).unwrap();
+    let compressor = Lz77Compressor::default();
 
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
 
     let mut offset = 0;
     while offset < input_data.len() {
-        let mut cursor = Cursor::new(&input_data[offset..]);
         let mut decompressed: Vec<u8> = Vec::new();
 
-        if decompress_lz77(&mut cursor, &mut decompressed).is_ok() {
+        if compressor.decompress(&input_data[offset..], &mut decompressed).is_ok() {
             if decompressed.len() >= args.flag_min_size.unwrap_or(0) {
                 let offset_str = format_offset(offset, args.flag_hex);
 

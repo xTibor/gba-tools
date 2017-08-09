@@ -4,11 +4,11 @@ extern crate gba_rs;
 extern crate serde_derive;
 
 use docopt::Docopt;
-use gba_rs::compression::bios::{compress_rle, compress_lz77};
-use gba_rs::compression::bios::{decompress_rle, decompress_lz77};
-use gba_rs::compression::game_specific::wario_land_4::{compress_wl4_rle8, compress_wl4_rle16};
-use gba_rs::compression::game_specific::wario_land_4::{decompress_wl4_rle};
+use gba_rs::compression::Compressor;
+use gba_rs::compression::bios::{RleCompressor, Lz77Compressor, Diff8Filter, Diff16Filter};
+use gba_rs::compression::game_specific::wario_land_4::{Wl4RleCompressor, Wl4Rle8Compressor, Wl4Rle16Compressor};
 use gba_rs::utils::streams::{InputStream, OutputStream};
+use std::io::{Read, Write};
 
 const USAGE: &'static str = "
 Usage:
@@ -25,8 +25,11 @@ Options:
 
 #[derive(Debug, Deserialize, Copy, Clone)]
 enum CompressionType {
+    Diff8,
+    Diff16,
     Lz77,
     Rle,
+    Wl4Rle,
     Wl4Rle8,
     Wl4Rle16,
 }
@@ -47,21 +50,26 @@ fn main() {
     let mut input = InputStream::new(args.flag_input).unwrap();
     let mut output = OutputStream::new(args.flag_output).unwrap();
 
-    match (args.flag_type, args.flag_decompress) {
-        // Compression
-        (CompressionType::Lz77, false) => compress_lz77(&mut input, &mut output).unwrap(),
-        (CompressionType::Rle, false) => compress_rle(&mut input, &mut output).unwrap(),
-        (CompressionType::Wl4Rle8, false) => compress_wl4_rle8(&mut input, &mut output).unwrap(),
-        (CompressionType::Wl4Rle16, false) => compress_wl4_rle16(&mut input, &mut output).unwrap(),
-        // Decompression
-        (CompressionType::Lz77, true) => decompress_lz77(&mut input, &mut output).unwrap(),
-        (CompressionType::Rle, true) => decompress_rle(&mut input, &mut output).unwrap(),
-        (CompressionType::Wl4Rle8, true) => decompress_wl4_rle(&mut input, &mut output).unwrap(),
-        (CompressionType::Wl4Rle16, true) => decompress_wl4_rle(&mut input, &mut output).unwrap(),
-        // Unsupported
-        _ => {
-            let cmd_str = if args.flag_decompress { "decompression" } else { "compression" };
-            eprintln!("gba-compress: {:?} {} is not supported", args.flag_type, cmd_str);
-        }
+    let compressor: Box<Compressor> = match args.flag_type {
+        CompressionType::Diff8 => Box::new(Diff8Filter::default()),
+        CompressionType::Diff16 => Box::new(Diff16Filter::default()),
+        CompressionType::Lz77 => Box::new(Lz77Compressor::default()),
+        CompressionType::Rle => Box::new(RleCompressor::default()),
+        CompressionType::Wl4Rle => Box::new(Wl4RleCompressor::default()),
+        CompressionType::Wl4Rle8 => Box::new(Wl4Rle8Compressor::default()),
+        CompressionType::Wl4Rle16 => Box::new(Wl4Rle16Compressor::default()),
+    };
+
+    let mut input_data = Vec::new();
+    let mut output_data = Vec::new();
+
+    input.read_to_end(&mut input_data).unwrap();
+
+    if args.flag_decompress {
+        compressor.decompress(&input_data, &mut output_data).unwrap();
+    } else {
+        compressor.compress(&input_data, &mut output_data).unwrap();
     }
+
+    output.write_all(&output_data).unwrap();
 }

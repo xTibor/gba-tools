@@ -10,8 +10,8 @@ use std::io::{Read, Write};
 
 const USAGE: &'static str = "
 Usage:
-    gba-guess-text-encoding --string <string> [--input <input>] [--output <output>] [--hex]
-    gba-guess-text-encoding --help
+    gba-find-text-encoding --string <string> [--input <input>] [--output <output>] [--hex]
+    gba-find-text-encoding --help
 
 Options:
     -s, --string <string>  String to search for
@@ -35,7 +35,7 @@ fn main() {
         .unwrap_or_else(|e| e.exit());
 
     if args.flag_string.len() < 2 {
-        eprintln!("gba-guess-text-encoding: `--string` must be at least 2 characters long");
+        eprintln!("gba-find-text-encoding: `--string` must be at least 2 characters long");
         return
     }
 
@@ -59,7 +59,7 @@ fn main() {
     for (offset, window) in haystack_diffs.windows(needle_diffs.len()).enumerate() {
         if *window == needle_diffs[..] {
             let offset_str = format_offset(offset, args.flag_hex);
-            writeln!(output, "{}", offset_str).unwrap();
+            writeln!(output, "{} u8", offset_str).unwrap();
         }
     }
 }
