@@ -5,7 +5,7 @@ extern crate serde_derive;
 
 use docopt::Docopt;
 use gba_rs::compression::Compressor;
-use gba_rs::compression::bios::{RleCompressor, Lz77Compressor, Diff8Filter, Diff16Filter};
+use gba_rs::compression::bios::{RleCompressor, Lz77Compressor, Diff8Filter, Diff16Filter, HuffmanCompressor};
 use gba_rs::compression::game_specific::wario_land_4::{Wl4RleCompressor, Wl4Rle8Compressor, Wl4Rle16Compressor};
 use gba_rs::utils::streams::{InputStream, OutputStream};
 use std::io::{Read, Write};
@@ -29,6 +29,7 @@ enum CompressionType {
     Diff16,
     Lz77,
     Rle,
+    Huff,
     Wl4Rle,
     Wl4Rle8,
     Wl4Rle16,
@@ -55,6 +56,7 @@ fn main() {
         CompressionType::Diff16 => Box::new(Diff16Filter::default()),
         CompressionType::Lz77 => Box::new(Lz77Compressor::default()),
         CompressionType::Rle => Box::new(RleCompressor::default()),
+        CompressionType::Huff => Box::new(HuffmanCompressor::default()),
         CompressionType::Wl4Rle => Box::new(Wl4RleCompressor::default()),
         CompressionType::Wl4Rle8 => Box::new(Wl4Rle8Compressor::default()),
         CompressionType::Wl4Rle16 => Box::new(Wl4Rle16Compressor::default()),
