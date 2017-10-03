@@ -28,6 +28,7 @@ enum CompressionType {
     Diff8,
     Diff16,
     Lz77,
+    Lz77Vram,
     Rle,
     Huff,
     Wl4Rle,
@@ -54,7 +55,8 @@ fn main() {
     let compressor: Box<Compressor> = match args.flag_type {
         CompressionType::Diff8 => Box::new(Diff8Filter::default()),
         CompressionType::Diff16 => Box::new(Diff16Filter::default()),
-        CompressionType::Lz77 => Box::new(Lz77Compressor::default()),
+        CompressionType::Lz77 => Box::new(Lz77Compressor { vram_safe: false }),
+        CompressionType::Lz77Vram => Box::new(Lz77Compressor { vram_safe: true }),
         CompressionType::Rle => Box::new(RleCompressor::default()),
         CompressionType::Huff => Box::new(HuffmanCompressor::default()),
         CompressionType::Wl4Rle => Box::new(Wl4RleCompressor::default()),
