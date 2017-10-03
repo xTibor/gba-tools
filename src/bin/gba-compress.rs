@@ -1,5 +1,6 @@
 extern crate docopt;
 extern crate gba_rs;
+extern crate gba_tools;
 #[macro_use]
 extern crate serde_derive;
 
@@ -7,7 +8,7 @@ use docopt::Docopt;
 use gba_rs::compression::Compressor;
 use gba_rs::compression::bios::{RleCompressor, Lz77Compressor, Diff8Filter, Diff16Filter, HuffmanCompressor};
 use gba_rs::compression::game_specific::wario_land_4::{Wl4RleCompressor, Wl4Rle8Compressor, Wl4Rle16Compressor};
-use gba_rs::utils::streams::{InputStream, OutputStream};
+use gba_tools::streams::{InputStream, OutputStream};
 use std::io::{Read, Write};
 
 const USAGE: &'static str = "

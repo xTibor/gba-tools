@@ -1,13 +1,14 @@
 extern crate docopt;
 extern crate gba_rs;
+extern crate gba_tools;
 #[macro_use]
 extern crate serde_derive;
 
 use docopt::Docopt;
 use gba_rs::compression::Compressor;
 use gba_rs::compression::bios::Lz77Compressor;
-use gba_rs::utils::format::format_offset;
-use gba_rs::utils::streams::{InputStream, OutputStream};
+use gba_tools::format_offset;
+use gba_tools::streams::{InputStream, OutputStream};
 use std::fs::File;
 use std::io::{Read, Write};
 
