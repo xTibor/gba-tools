@@ -30,6 +30,44 @@ struct Args {
     flag_hex: bool,
 }
 
+fn diff_u8(buf: &[u8]) -> Vec<isize> {
+    buf.windows(2)
+       .map(|window| window[1] as isize - window[0] as isize)
+       .collect::<Vec<isize>>()
+}
+
+fn diff_u16le(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn diff_u16be(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn diff_u16lo(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn diff_u16hi(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn diff_u32le(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn diff_u32be(buf: &[u8]) -> Vec<isize> {
+    Vec::new()
+}
+
+fn find_text(needle_diffs: &[isize], haystack_diffs: &[isize], output: &mut OutputStream, name: &'static str) {
+    for (offset, window) in haystack_diffs.windows(needle_diffs.len()).enumerate() {
+        if *window == needle_diffs[..] {
+            writeln!(output, "{}", name).unwrap();
+        }
+    }
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -46,21 +84,13 @@ fn main() {
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
 
-    let needle_diffs = args.flag_string
-        .as_bytes()
-        .windows(2)
-        .map(|window| window[1] as isize - window[0] as isize)
-        .collect::<Vec<isize>>();
+    let needle_diffs = diff_u8(args.flag_string.as_bytes());
 
-    let haystack_diffs = input_data
-        .windows(2)
-        .map(|window| window[1] as isize - window[0] as isize)
-        .collect::<Vec<isize>>();
-
-    for (offset, window) in haystack_diffs.windows(needle_diffs.len()).enumerate() {
-        if *window == needle_diffs[..] {
-            let offset_str = format_offset(offset, args.flag_hex);
-            writeln!(output, "{} u8", offset_str).unwrap();
-        }
-    }
+    find_text(&needle_diffs, &diff_u8(&input_data), &mut output, "u8");
+    find_text(&needle_diffs, &diff_u16le(&input_data), &mut output, "u16le");
+    find_text(&needle_diffs, &diff_u16be(&input_data), &mut output, "u16be");
+    find_text(&needle_diffs, &diff_u16lo(&input_data), &mut output, "u16lo");
+    find_text(&needle_diffs, &diff_u16hi(&input_data), &mut output, "u16hi");
+    find_text(&needle_diffs, &diff_u32le(&input_data), &mut output, "u32le");
+    find_text(&needle_diffs, &diff_u32be(&input_data), &mut output, "u32be");
 }
