@@ -8,3 +8,4 @@ gba-rs = { git = "https://github.com/xtibor/gba-rs" }
 docopt = "0.8.1"
 serde = "1.0"
 serde_derive = "1.0"
+byteorder = "1.1.0"

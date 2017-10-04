@@ -1,11 +1,11 @@
+extern crate byteorder;
 extern crate docopt;
-extern crate gba_rs;
 extern crate gba_tools;
 #[macro_use]
 extern crate serde_derive;
 
+use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use docopt::Docopt;
-use gba_tools::format_offset;
 use gba_tools::streams::{InputStream, OutputStream};
 use std::io::{Read, Write};
 
@@ -30,40 +30,44 @@ struct Args {
     flag_hex: bool,
 }
 
-fn diff_u8(buf: &[u8]) -> Vec<isize> {
+fn delta<T: Into<i64> + Copy>(buf: &[T]) -> Vec<i64> {
     buf.windows(2)
-       .map(|window| window[1] as isize - window[0] as isize)
-       .collect::<Vec<isize>>()
+       .map(|window| (window[1].into()).wrapping_sub(window[0].into()))
+       .collect::<Vec<i64>>()
 }
 
-fn diff_u16le(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
+fn delta_u8(buf: &[u8]) -> Vec<i64> {
+    delta(buf)
 }
 
-fn diff_u16be(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
+fn delta_u16le(buf: &[u8]) -> Vec<i64> {
+    let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
+    LittleEndian::read_u16_into(buf, &mut buf16[..]);
+    delta(&buf16)
 }
 
-fn diff_u16lo(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
+fn delta_u16be(buf: &[u8]) -> Vec<i64> {
+    let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
+    BigEndian::read_u16_into(buf, &mut buf16[..]);
+    delta(&buf16)
 }
 
-fn diff_u16hi(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
+fn delta_u32le(buf: &[u8]) -> Vec<i64> {
+    let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
+    LittleEndian::read_u32_into(buf, &mut buf32[..]);
+    delta(&buf32)
 }
 
-fn diff_u32le(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
+fn delta_u32be(buf: &[u8]) -> Vec<i64> {
+    let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
+    BigEndian::read_u32_into(buf, &mut buf32[..]);
+    delta(&buf32)
 }
 
-fn diff_u32be(buf: &[u8]) -> Vec<isize> {
-    Vec::new()
-}
-
-fn find_text(needle_diffs: &[isize], haystack_diffs: &[isize], output: &mut OutputStream, name: &'static str) {
-    for (offset, window) in haystack_diffs.windows(needle_diffs.len()).enumerate() {
-        if *window == needle_diffs[..] {
-            writeln!(output, "{}", name).unwrap();
+fn find_text(needle_deltas: &[i64], haystack_deltas: &[i64], output: &mut OutputStream, name: &'static str) {
+    for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
+        if *window == needle_deltas[..] {
+            writeln!(output, "{} {}", offset, name).unwrap();
         }
     }
 }
@@ -84,13 +88,11 @@ fn main() {
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
 
-    let needle_diffs = diff_u8(args.flag_string.as_bytes());
+    let needle_deltas = delta_u8(args.flag_string.as_bytes());
 
-    find_text(&needle_diffs, &diff_u8(&input_data), &mut output, "u8");
-    find_text(&needle_diffs, &diff_u16le(&input_data), &mut output, "u16le");
-    find_text(&needle_diffs, &diff_u16be(&input_data), &mut output, "u16be");
-    find_text(&needle_diffs, &diff_u16lo(&input_data), &mut output, "u16lo");
-    find_text(&needle_diffs, &diff_u16hi(&input_data), &mut output, "u16hi");
-    find_text(&needle_diffs, &diff_u32le(&input_data), &mut output, "u32le");
-    find_text(&needle_diffs, &diff_u32be(&input_data), &mut output, "u32be");
+    find_text(&needle_deltas, &delta_u8(&input_data), &mut output, "u8");
+    find_text(&needle_deltas, &delta_u16le(&input_data), &mut output, "u16le");
+    find_text(&needle_deltas, &delta_u16be(&input_data), &mut output, "u16be");
+    find_text(&needle_deltas, &delta_u32le(&input_data), &mut output, "u32le");
+    find_text(&needle_deltas, &delta_u32be(&input_data), &mut output, "u32be");
 }
