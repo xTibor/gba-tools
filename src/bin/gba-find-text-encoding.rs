@@ -143,10 +143,10 @@ fn main() {
 
     let needle_deltas = delta(args.flag_string.as_bytes());
 
-    for proc_def in PROC_DEFS.iter() {
+    for proc_def in &PROC_DEFS {
         let processed_data = (proc_def.proc_fn)(&input_data);
 
-        for delta_def in DELTA_DEFS.iter() {
+        for delta_def in &DELTA_DEFS {
             let haystack_deltas = (delta_def.delta_fn)(&processed_data);
             for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
                 if *window == needle_deltas[..] {
