@@ -36,40 +36,10 @@ fn delta<T: Into<i64> + Copy>(buf: &[T]) -> Vec<i64> {
        .collect::<Vec<i64>>()
 }
 
-fn delta_u8(buf: &[u8]) -> Vec<i64> {
-    delta(buf)
-}
-
-fn delta_u16le(buf: &[u8]) -> Vec<i64> {
-    let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
-    LittleEndian::read_u16_into(buf, &mut buf16[..]);
-    delta(&buf16)
-}
-
-fn delta_u16be(buf: &[u8]) -> Vec<i64> {
-    let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
-    BigEndian::read_u16_into(buf, &mut buf16[..]);
-    delta(&buf16)
-}
-
-fn delta_u32le(buf: &[u8]) -> Vec<i64> {
-    let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
-    LittleEndian::read_u32_into(buf, &mut buf32[..]);
-    delta(&buf32)
-}
-
-fn delta_u32be(buf: &[u8]) -> Vec<i64> {
-    let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
-    BigEndian::read_u32_into(buf, &mut buf32[..]);
-    delta(&buf32)
-}
-
-fn find_text(needle_deltas: &[i64], haystack_deltas: &[i64], output: &mut OutputStream, name: &'static str) {
-    for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
-        if *window == needle_deltas[..] {
-            writeln!(output, "{} {}", offset, name).unwrap();
-        }
-    }
+struct DeltaDef {
+    delta_name: &'static str,
+    delta_fn: Box<Fn(&[u8]) -> Vec<i64>>,
+    data_size: usize,
 }
 
 fn main() {
@@ -88,11 +58,62 @@ fn main() {
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
 
-    let needle_deltas = delta_u8(args.flag_string.as_bytes());
+    let needle_deltas = delta(args.flag_string.as_bytes());
 
-    find_text(&needle_deltas, &delta_u8(&input_data), &mut output, "u8");
-    find_text(&needle_deltas, &delta_u16le(&input_data), &mut output, "u16le");
-    find_text(&needle_deltas, &delta_u16be(&input_data), &mut output, "u16be");
-    find_text(&needle_deltas, &delta_u32le(&input_data), &mut output, "u32le");
-    find_text(&needle_deltas, &delta_u32be(&input_data), &mut output, "u32be");
+    let delta_defs = vec![
+        DeltaDef {
+            delta_name: "u8",
+            data_size: 1,
+            delta_fn: Box::new(|buf| {
+                delta(buf)
+            }),
+        },
+        DeltaDef {
+            delta_name: "u16le",
+            data_size: 2,
+            delta_fn: Box::new(|buf| {
+                let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
+                LittleEndian::read_u16_into(buf, &mut buf16[..]);
+                delta(&buf16)
+            }),
+        },
+        DeltaDef {
+            delta_name: "u16be",
+            data_size: 2,
+            delta_fn: Box::new(|buf| {
+                let mut buf16: Vec<u16> = vec![0; buf.len() / 2];
+                BigEndian::read_u16_into(buf, &mut buf16[..]);
+                delta(&buf16)
+            }),
+        },
+        DeltaDef {
+            delta_name: "u32le",
+            data_size: 4,
+            delta_fn: Box::new(|buf| {
+                let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
+                LittleEndian::read_u32_into(buf, &mut buf32[..]);
+                delta(&buf32)
+            }),
+        },
+        DeltaDef {
+            delta_name: "u32be",
+            data_size: 4,
+            delta_fn: Box::new(|buf| {
+                let mut buf32: Vec<u32> = vec![0; buf.len() / 4];
+                BigEndian::read_u32_into(buf, &mut buf32[..]);
+                delta(&buf32)
+            }),
+        },
+    ];
+
+    for delta_def in delta_defs {
+        println!("{:?}", delta_def.delta_name);
+
+        let haystack_deltas = (delta_def.delta_fn)(&input_data);
+        for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
+            if *window == needle_deltas[..] {
+                writeln!(output, "{} {}", offset, delta_def.delta_name).unwrap();
+            }
+        }
+    }
 }
