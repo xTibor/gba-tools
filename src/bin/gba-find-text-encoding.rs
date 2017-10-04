@@ -89,6 +89,42 @@ const DELTA_DEFS: [DeltaDef; 5] = [
     },
 ];
 
+struct ProcDef {
+    proc_name: &'static str,
+    proc_fn: &'static Fn(&[u8]) -> Vec<u8>,
+    offset_fn: &'static Fn(usize) -> usize,
+}
+
+const PROC_DEFS: [ProcDef; 3] = [
+    ProcDef {
+        proc_name: "none",
+        proc_fn: &|buf| {
+            buf.to_owned()
+        },
+        offset_fn: &|offset| {
+            offset
+        },
+    },
+    ProcDef {
+        proc_name: "odd_bytes",
+        proc_fn: &|buf| {
+            buf.chunks(2).map(|c| *c.get(0).unwrap_or(&0)).collect()
+        },
+        offset_fn: &|offset| {
+            offset * 2
+        },
+    },
+    ProcDef {
+        proc_name: "even_bytes",
+        proc_fn: &|buf| {
+            buf.chunks(2).map(|c| *c.get(1).unwrap_or(&0)).collect()
+        },
+        offset_fn: &|offset| {
+            offset * 2 + 1
+        },
+    },
+];
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -107,12 +143,17 @@ fn main() {
 
     let needle_deltas = delta(args.flag_string.as_bytes());
 
-    for delta_def in DELTA_DEFS.iter() {
-        let haystack_deltas = (delta_def.delta_fn)(&input_data);
-        for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
-            if *window == needle_deltas[..] {
-                let offset_str = format_offset(offset * delta_def.data_size, args.flag_hex);
-                writeln!(output, "{} {}", delta_def.delta_name, offset_str).unwrap();
+    for proc_def in PROC_DEFS.iter() {
+        let processed_data = (proc_def.proc_fn)(&input_data);
+
+        for delta_def in DELTA_DEFS.iter() {
+            let haystack_deltas = (delta_def.delta_fn)(&processed_data);
+            for (offset, window) in haystack_deltas.windows(needle_deltas.len()).enumerate() {
+                if *window == needle_deltas[..] {
+                    let offset = (proc_def.offset_fn)(offset * delta_def.data_size);
+                    let offset_str = format_offset(offset, args.flag_hex);
+                    writeln!(output, "{} {} {}", delta_def.delta_name, proc_def.proc_name, offset_str).unwrap();
+                }
             }
         }
     }
