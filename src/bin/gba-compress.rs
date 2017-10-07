@@ -66,15 +66,13 @@ fn main() {
     };
 
     let mut input_data = Vec::new();
-    let mut output_data = Vec::new();
-
     input.read_to_end(&mut input_data).unwrap();
 
-    if args.flag_decompress {
-        compressor.decompress(&input_data, &mut output_data).unwrap();
+    let output_data = if args.flag_decompress {
+        compressor.decompress(&input_data).unwrap()
     } else {
-        compressor.compress(&input_data, &mut output_data).unwrap();
-    }
+        compressor.compress(&input_data).unwrap()
+    };
 
     output.write_all(&output_data).unwrap();
 }

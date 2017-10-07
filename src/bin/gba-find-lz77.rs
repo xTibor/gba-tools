@@ -51,9 +51,7 @@ fn main() {
 
     let mut offset = 0;
     while offset < input_data.len() {
-        let mut decompressed: Vec<u8> = Vec::new();
-
-        if compressor.decompress(&input_data[offset..], &mut decompressed).is_ok() {
+        if let Ok(decompressed) = compressor.decompress(&input_data[offset..]) {
             if decompressed.len() >= args.flag_min_size.unwrap_or(0) {
                 let offset_str = format_offset(offset, args.flag_hex);
 
