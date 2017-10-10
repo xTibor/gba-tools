@@ -5,8 +5,7 @@ extern crate gba_tools;
 extern crate serde_derive;
 
 use docopt::Docopt;
-use gba_compression::Compressor;
-use gba_compression::bios::Lz77Compressor;
+use gba_compression::bios::decompress_lz77;
 use gba_tools::format_offset;
 use gba_tools::streams::{InputStream, OutputStream};
 use std::fs::File;
@@ -44,14 +43,13 @@ fn main() {
 
     let mut input = InputStream::new(args.flag_input).unwrap();
     let mut output = OutputStream::new(args.flag_output).unwrap();
-    let compressor = Lz77Compressor::default();
 
     let mut input_data = Vec::new();
     input.read_to_end(&mut input_data).unwrap();
 
     let mut offset = 0;
     while offset < input_data.len() {
-        if let Ok(decompressed) = compressor.decompress(&input_data[offset..]) {
+        if let Ok(decompressed) = decompress_lz77(&input_data[offset..]) {
             if decompressed.len() >= args.flag_min_size.unwrap_or(0) {
                 let offset_str = format_offset(offset, args.flag_hex);
 
